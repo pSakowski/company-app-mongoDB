@@ -2,63 +2,85 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 
-router.get('/departments', (req, res) => {
-  req.db.collection('departments').find().toArray((err, data) => {
-    if (err) {
-      return res.status(500).json({ message: err });
-    }
+// Get all departments
+router.get('/departments', async (req, res) => {
+  try {
+    const data = await req.db.collection('departments').find().toArray();
     res.json(data);
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.get('/departments/random', (req, res) => {
-  req.db.collection('departments').aggregate([{ $sample: { size: 1 } }]).toArray((err, data) => {
-    if (err) {
-      return res.status(500).json({ message: err });
-    }
+// Get a random department
+router.get('/departments/random', async (req, res) => {
+  try {
+    const data = await req.db.collection('departments').aggregate([{ $sample: { size: 1 } }]).toArray();
     res.json(data[0]);
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.get('/departments/:id', (req, res) => {
-  req.db.collection('departments').findOne({ _id: ObjectId(req.params.id) }, (err, data) => {
-    if (err) {
-      return res.status(500).json({ message: err });
+// Get a department by id
+router.get('/departments/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
     }
+    const data = await req.db.collection('departments').findOne({ _id: new ObjectId(id) });
     if (!data) {
       return res.status(404).json({ message: 'Not found' });
     }
     res.json(data);
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.post('/departments', (req, res) => {
+// Create a department
+router.post('/departments', async (req, res) => {
   const { name } = req.body;
-  req.db.collection('departments').insertOne({ name }, (err, result) => {
-    if (err) {
-      return res.status(500).json({ message: err });
-    }
-    res.json({ message: 'OK' });
-  });
+  try {
+    const result = await req.db.collection('departments').insertOne({ name });
+    res.json({ id: result.insertedId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.put('/departments/:id', (req, res) => {
+// Update a department
+router.put('/departments/:id', async (req, res) => {
   const { name } = req.body;
-  req.db.collection('departments').updateOne({ _id: ObjectId(req.params.id) }, { $set: { name } }, (err, result) => {
-    if (err) {
-      return res.status(500).json({ message: err });
+  try {
+    const result = await req.db.collection('departments').updateOne({ _id: ObjectId(req.params.id) }, { $set: { name } });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Not found' });
     }
     res.json({ message: 'OK' });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.delete('/departments/:id', (req, res) => {
-  req.db.collection('departments').deleteOne({ _id: ObjectId(req.params.id) }, (err, result) => {
-    if (err) {
-      return res.status(500).json({ message: err });
+// Delete a department
+router.delete('/departments/:id', async (req, res) => {
+  try {
+    const result = await req.db.collection('departments').deleteOne({ _id: ObjectId(req.params.id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Not found' });
     }
     res.json({ message: 'OK' });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 module.exports = router;

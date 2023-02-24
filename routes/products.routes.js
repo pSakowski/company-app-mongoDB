@@ -1,36 +1,92 @@
-// post.routes.js
-
 const express = require('express');
 const router = express.Router();
-const db = require('./../db');
+const { ObjectId } = require('mongodb');
 
-router.get('/products', (req, res) => {
-  res.json(db.products);
+// Get all products
+router.get('/products', async (req, res) => {
+  try {
+    const products = await req.db.collection('products').find().toArray();
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
-router.get('/products/random', (req, res) => {
-  res.json(db.products[Math.floor(Math.random() * db.length)]);
+// Get a random products
+router.get('/products/random', async (req, res) => {
+  try {
+    const data = await req.db.collection('products').aggregate([{ $sample: { size: 1 } }]).toArray();
+    res.json(data[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.get('/products/:id', (req, res) => {
-  res.json(db.products.find(item => item.id == req.params.id));
+// Get a products by id
+router.get('/products/:id', async (req, res) => {
+  const id = req.params.id;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid ID' });
+  }
+  try {
+    const data = await req.db.collection('products').findOne({ _id: new ObjectId(id) });
+    if (!data) {
+      res.status(404).json({ message: 'Not found' });
+    } else {
+      res.json({ id: data._id, name: data.name });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
-router.post('/products', (req, res) => {
+// Create a products
+router.post('/products', async (req, res) => {
   const { name, client } = req.body;
-  db.products.push({ id: 3, name, client })
-  res.json({ message: 'OK' });
+  try {
+    const result = await req.db.collection('products').insertOne({ name, client });
+    res.json({ message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
-router.put('/products/:id', (req, res) => {
+// Update a products
+router.put('/products/:id', async (req, res) => {
   const { name, client } = req.body;
-  db = db.products.map(item => (item.id == req.params.id) ? { ...item, name, client } : item );
-  res.json({ message: 'OK' });
+  const id = req.params.id;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid ID' });
+  }
+  try {
+    const result = await req.db.collection('products').updateOne({ _id: new ObjectId(id) }, { $set: { name, client } });
+    if (result.modifiedCount === 0) {
+      res.status(404).json({ message: 'Not found' });
+    } else {
+      res.json({ message: 'OK' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
-router.delete('/products/:id', (req, res) => {
-  db = db.products.filter(item => item.id != req.params.id)
-  res.json({ message: 'OK' });
+// Delete a products
+router.delete('/products/:id', async (req, res) => {
+  const id = req.params.id;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid ID' });
+  }
+  try {
+    const result = await req.db.collection('products').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
+      res.status(404).json({ message: 'Not found' });
+    } else {
+      res.json({ message: 'OK' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
 });
 
 module.exports = router;
