@@ -13,7 +13,14 @@ mongoClient.connect('mongodb://localhost:27017/', { useNewUrlParser: true, useUn
   else {
     console.log('Successfully connected to the database');
     const db = client.db('companyDB');
+
     const app = express();
+
+    // Middleware to attach the database object to the request object
+    app.use((req, res, next) => {
+      req.db = db;
+      next();
+    });
 
     app.use(cors());
     app.use(express.json());
