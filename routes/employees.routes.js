@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 
+const Employee = require('../models/employee.model');
+
 // Get all employees
 router.get('/employees', async (req, res) => {
   try {
-    const employees = await req.db.collection('employees').find().toArray();
+    const employees = await Employee.find();
     res.json(employees);
   } catch (err) {
     console.error(err);
@@ -16,8 +18,10 @@ router.get('/employees', async (req, res) => {
 // Get a random employee
 router.get('/employees/random', async (req, res) => {
   try {
-    const data = await req.db.collection('employees').aggregate([{ $sample: { size: 1 } }]).toArray();
-    res.json(data[0]);
+    const count = await Employee.countDocuments();
+    const randomIndex = Math.floor(Math.random() * count);
+    const randomEmployee = await Employee.findOne().skip(randomIndex);
+    res.json(randomEmployee);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -25,23 +29,28 @@ router.get('/employees/random', async (req, res) => {
 });
 
 // Get an employee by id
-router.get('/employees/:id', (req, res) => {
-  const id = req.params.id;
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid ID' });
+router.get('/employees/:id', async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    res.json(employee);
+  } catch (err) {
+    console.error(err);
+    if (err instanceof ObjectId) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
   }
-  req.db.collection('employees').findOne({ _id: new ObjectId(id) }, (err, data) => {
-    if(err) res.status(500).json({ message: err });
-    else if(!data) res.status(404).json({ message: 'Not found' });
-    else res.json({id: data._id, firstName: data.firstName, lastName: data.lastName});
-  });
 });
 
 // Create an employee
 router.post('/employees', async (req, res) => {
   const { firstName, lastName, department } = req.body;
   try {
-    await req.db.collection('employees').insertOne({ firstName, lastName, department });
+    const employee = new Employee({ firstName, lastName, department });
+    await employee.save();
     res.json({ message: 'OK' });
   } catch (err) {
     console.error(err);
@@ -53,10 +62,20 @@ router.post('/employees', async (req, res) => {
 router.put('/employees/:id', async (req, res) => {
   const { firstName, lastName, department } = req.body;
   try {
-    await req.db.collection('employees').updateOne({ _id: ObjectId(req.params.id) }, { $set: { firstName, lastName, department } });
+    const employee = await Employee.findByIdAndUpdate(
+      req.params.id,
+      { firstName, lastName, department },
+      { new: true }
+    );
+    if (!employee) {
+      return res.status(404).json({ message: 'Not found' });
+    }
     res.json({ message: 'OK' });
   } catch (err) {
     console.error(err);
+    if (err instanceof ObjectId) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -64,10 +83,16 @@ router.put('/employees/:id', async (req, res) => {
 // Delete an employee
 router.delete('/employees/:id', async (req, res) => {
   try {
-    await req.db.collection('employees').deleteOne({ _id: ObjectId(req.params.id) });
+    const employee = await Employee.findByIdAndDelete(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Not found' });
+    }
     res.json({ message: 'OK' });
   } catch (err) {
     console.error(err);
+    if (err instanceof ObjectId) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 });
