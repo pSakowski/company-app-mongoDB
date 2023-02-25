@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
+const Department = require('../models/department.model');
 
 // Get all departments
 router.get('/departments', async (req, res) => {
   try {
-    const data = await req.db.collection('departments').find().toArray();
+    const data = await Department.find();
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -16,8 +17,10 @@ router.get('/departments', async (req, res) => {
 // Get a random department
 router.get('/departments/random', async (req, res) => {
   try {
-    const data = await req.db.collection('departments').aggregate([{ $sample: { size: 1 } }]).toArray();
-    res.json(data[0]);
+    const count = await Department.countDocuments();
+    const randomIndex = Math.floor(Math.random() * count);
+    const data = await Department.findOne().skip(randomIndex);
+    res.json(data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -31,7 +34,7 @@ router.get('/departments/:id', async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
-    const data = await req.db.collection('departments').findOne({ _id: new ObjectId(id) });
+    const data = await Department.findById(id);
     if (!data) {
       return res.status(404).json({ message: 'Not found' });
     }
@@ -46,8 +49,9 @@ router.get('/departments/:id', async (req, res) => {
 router.post('/departments', async (req, res) => {
   const { name } = req.body;
   try {
-    const result = await req.db.collection('departments').insertOne({ name });
-    res.json({ id: result.insertedId });
+    const department = new Department({ name });
+    const result = await department.save();
+    res.json({ id: result._id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -58,8 +62,8 @@ router.post('/departments', async (req, res) => {
 router.put('/departments/:id', async (req, res) => {
   const { name } = req.body;
   try {
-    const result = await req.db.collection('departments').updateOne({ _id: ObjectId(req.params.id) }, { $set: { name } });
-    if (result.matchedCount === 0) {
+    const result = await Department.updateOne({ _id: ObjectId(req.params.id) }, { $set: { name } });
+    if (result.n === 0) {
       return res.status(404).json({ message: 'Not found' });
     }
     res.json({ message: 'OK' });
@@ -72,8 +76,8 @@ router.put('/departments/:id', async (req, res) => {
 // Delete a department
 router.delete('/departments/:id', async (req, res) => {
   try {
-    const result = await req.db.collection('departments').deleteOne({ _id: ObjectId(req.params.id) });
-    if (result.deletedCount === 0) {
+    const result = await Department.findByIdAndDelete(req.params.id);
+    if (!result) {
       return res.status(404).json({ message: 'Not found' });
     }
     res.json({ message: 'OK' });
