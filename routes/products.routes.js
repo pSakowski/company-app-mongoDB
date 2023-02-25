@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 
+const Product = require('../models/product.model');
+
 // Get all products
 router.get('/products', async (req, res) => {
   try {
-    const products = await req.db.collection('products').find().toArray();
+    const products = await Product.find();
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: err });
@@ -15,7 +17,7 @@ router.get('/products', async (req, res) => {
 // Get a random products
 router.get('/products/random', async (req, res) => {
   try {
-    const data = await req.db.collection('products').aggregate([{ $sample: { size: 1 } }]).toArray();
+    const data = await Product.aggregate([{ $sample: { size: 1 } }]);
     res.json(data[0]);
   } catch (err) {
     console.error(err);
@@ -30,7 +32,7 @@ router.get('/products/:id', async (req, res) => {
     return res.status(400).json({ message: 'Invalid ID' });
   }
   try {
-    const data = await req.db.collection('products').findOne({ _id: new ObjectId(id) });
+    const data = await Product.findById(id);
     if (!data) {
       res.status(404).json({ message: 'Not found' });
     } else {
@@ -45,7 +47,8 @@ router.get('/products/:id', async (req, res) => {
 router.post('/products', async (req, res) => {
   const { name, client } = req.body;
   try {
-    const result = await req.db.collection('products').insertOne({ name, client });
+    const product = new Product({ name, client });
+    await product.save();
     res.json({ message: 'OK' });
   } catch (err) {
     res.status(500).json({ message: err });
@@ -60,8 +63,8 @@ router.put('/products/:id', async (req, res) => {
     return res.status(400).json({ message: 'Invalid ID' });
   }
   try {
-    const result = await req.db.collection('products').updateOne({ _id: new ObjectId(id) }, { $set: { name, client } });
-    if (result.modifiedCount === 0) {
+    const result = await Product.findByIdAndUpdate(id, { name, client });
+    if (!result) {
       res.status(404).json({ message: 'Not found' });
     } else {
       res.json({ message: 'OK' });
@@ -78,8 +81,8 @@ router.delete('/products/:id', async (req, res) => {
     return res.status(400).json({ message: 'Invalid ID' });
   }
   try {
-    const result = await req.db.collection('products').deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 0) {
+    const result = await Product.findByIdAndDelete(id);
+    if (!result) {
       res.status(404).json({ message: 'Not found' });
     } else {
       res.json({ message: 'OK' });
