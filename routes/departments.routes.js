@@ -60,27 +60,26 @@ router.post('/departments', async (req, res) => {
 
 // Update a department
 router.put('/departments/:id', async (req, res) => {
-  const { name } = req.body;
   try {
-    const result = await Department.updateOne({ _id: ObjectId(req.params.id) }, { $set: { name } });
-    if (result.n === 0) {
+    const updatedDepartment = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedDepartment) {
       return res.status(404).json({ message: 'Not found' });
     }
-    res.json({ message: 'OK' });
+    res.json({ message: 'OK', updatedDepartment });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Delete a department
+// Delete a department and return the deleted document
 router.delete('/departments/:id', async (req, res) => {
   try {
-    const result = await Department.findByIdAndDelete(req.params.id);
-    if (!result) {
+    const deletedDepartment = await Department.findByIdAndDelete(req.params.id);
+    if (!deletedDepartment) {
       return res.status(404).json({ message: 'Not found' });
     }
-    res.json({ message: 'OK' });
+    res.json({ message: 'OK', deletedDepartment });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });

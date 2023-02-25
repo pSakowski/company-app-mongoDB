@@ -55,7 +55,7 @@ router.post('/products', async (req, res) => {
   }
 });
 
-// Update a products
+// Update a product
 router.put('/products/:id', async (req, res) => {
   const { name, client } = req.body;
   const id = req.params.id;
@@ -63,32 +63,36 @@ router.put('/products/:id', async (req, res) => {
     return res.status(400).json({ message: 'Invalid ID' });
   }
   try {
-    const result = await Product.findByIdAndUpdate(id, { name, client });
-    if (!result) {
-      res.status(404).json({ message: 'Not found' });
-    } else {
-      res.json({ message: 'OK' });
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { name, client },
+      { new: true }
+    );
+    if (!product) {
+      return res.status(404).json({ message: 'Not found' });
     }
+    res.json(product);
   } catch (err) {
-    res.status(500).json({ message: err });
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Delete a products
+// Delete a product
 router.delete('/products/:id', async (req, res) => {
   const id = req.params.id;
   if (!ObjectId.isValid(id)) {
     return res.status(400).json({ message: 'Invalid ID' });
   }
   try {
-    const result = await Product.findByIdAndDelete(id);
-    if (!result) {
-      res.status(404).json({ message: 'Not found' });
-    } else {
-      res.json({ message: 'OK' });
+    const product = await Product.findByIdAndDelete(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Not found' });
     }
+    res.json(product);
   } catch (err) {
-    res.status(500).json({ message: err });
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

@@ -70,7 +70,7 @@ router.put('/employees/:id', async (req, res) => {
     if (!employee) {
       return res.status(404).json({ message: 'Not found' });
     }
-    res.json({ message: 'OK' });
+    res.json({ message: 'OK', employee });
   } catch (err) {
     console.error(err);
     if (err instanceof ObjectId) {
@@ -87,7 +87,7 @@ router.delete('/employees/:id', async (req, res) => {
     if (!employee) {
       return res.status(404).json({ message: 'Not found' });
     }
-    res.json({ message: 'OK' });
+    res.json({ message: 'OK', employee });
   } catch (err) {
     console.error(err);
     if (err instanceof ObjectId) {
