@@ -4,8 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "set NODE_ENV=test&& mocha \"./{,!(node_modules|client)/**/}*.test.js\"",
-    "test:watch": "onchange \"./**/*.js\" -i -k -- yarn test"
+    "test": "mocha --watch \"./{,!(node_modules|client)/**/}*.test.js\"",
+    "test:watch": "mocha --watch"
   },
   "dependencies": {
     "chai": "4.2.0",
