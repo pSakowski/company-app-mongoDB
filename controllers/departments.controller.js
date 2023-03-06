@@ -40,14 +40,12 @@ exports.getById = async (req, res) => {
 
 // Create a department
 exports.createDepartment = async (req, res) => {
-  const { name } = req.body;
   try {
-    const department = new Department({ name });
-    const result = await department.save();
-    res.json({ id: result._id });
+    const newDepartment = new Department({ name: req.body.name });
+    await newDepartment.save();
+    res.status(200).json({ message: 'Department created successfully!' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: err });
   }
 };
 
